@@ -89,13 +89,13 @@ def button_clicked():
 
 def create_user_list(total):
     return [f'U{x}' for x in range(1,total+1)]
-def round_to_multiple(total, ori_end_val):
-    return total * round(ori_end_val/total)
+def round_to_multiple(total,start_val, ori_end_val):
+    return total * round((start_val+ori_end_val)/total)
 def init_df(total, start_val=0,end_val=9999, start_direction='Left'):
     ret_df = dict()
     start_direction = start_direction.lower()
     usr_list = create_user_list(total)
-    end_val = round_to_multiple(total,end_val)
+    end_val = round_to_multiple(total,start_val,end_val)
     if start_direction == 'left':
         for num in range(start_val, end_val+1):
             idx = num % len(usr_list) if num % len(usr_list) else len(usr_list)
@@ -115,7 +115,7 @@ hide_dataframe_row_index = """
             .blank {display:none}
             </style>
             """
-st.markdown(hide_dataframe_row_index, unsafe_allow_html=True)
+
 total = st.slider('當前人數:',1,15)
 if total:
     st.write('<style>div.row-widget.stRadio > div{flex-direction:row;justify-content: center;} </style>', unsafe_allow_html=True)
@@ -126,9 +126,11 @@ if total:
     col1, col2 = st.columns(2)
     with col1: # 從左到右
         df_left = init_df(total,min_val,max_val,'left').style.applymap(highlight_col, subset=pd.IndexSlice[:, [f'U{choose}']])
+        st.markdown(hide_dataframe_row_index, unsafe_allow_html=True)
         st.dataframe(df_left)
     with col2:
         df_right = init_df(total,min_val,max_val,'right').style.applymap(highlight_col, subset=pd.IndexSlice[:, [f'U{choose}']])
+        st.markdown(hide_dataframe_row_index, unsafe_allow_html=True)
         st.dataframe(df_right)
     st.write(choose)
     num = st.number_input('text', format='%d')
