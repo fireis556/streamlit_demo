@@ -109,6 +109,13 @@ def init_df(total, start_val=0,end_val=9999, start_direction='Left'):
 def highlight_col(row):
     return 'background-color: yellow'
 st.set_page_config(layout="wide")
+hide_dataframe_row_index = """
+            <style>
+            .row_heading.level0 {display:none}
+            .blank {display:none}
+            </style>
+            """
+st.markdown(hide_dataframe_row_index, unsafe_allow_html=True)
 total = st.slider('當前人數:',1,15)
 if total:
     st.write('<style>div.row-widget.stRadio > div{flex-direction:row;justify-content: center;} </style>', unsafe_allow_html=True)
