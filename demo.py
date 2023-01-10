@@ -90,7 +90,7 @@ def button_clicked():
 def create_user_list(total):
     return [f'U{x}' for x in range(1,total+1)]
 def round_to_multiple(total,start_val, ori_end_val):
-    return total * round((start_val+ori_end_val)/total)
+    return total * round((ori_end_val)/total)
 def init_df(total, start_val=0,end_val=9999, start_direction='Left'):
     ret_df = dict()
     start_direction = start_direction.lower()
