@@ -1,9 +1,13 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-def check_is_need_to_pass(num):
+from math import ceil
+MAX_VAL = 9999
+MIN_VAL = 0
+TAR = 7
+def check_is_need_to_pass(num, tar_num=TAR):
     int_num = int(num)
-    if (int_num % 7 == 0) or (str(int_num)[-1] == '7'):
+    if (int_num % tar_num == 0) or (str(int_num)[-1] == str(tar_num)):
         return "PASS!"
     else:
         return str(num)
@@ -90,22 +94,40 @@ def button_clicked():
 def create_user_list(total):
     return [f'U{x}' for x in range(1,total+1)]
 def round_to_multiple(total,start_val, ori_end_val):
-    return total * round((ori_end_val)/total)
+    length = len(range(start_val, ori_end_val))
+    new_length = int(total * ceil(length/total))
+    return (start_val + new_length)
 def init_df(total, start_val=0,end_val=9999, start_direction='Left'):
     ret_df = dict()
     start_direction = start_direction.lower()
     usr_list = create_user_list(total)
-    end_val = round_to_multiple(total,start_val,end_val)
+    end_val = round_to_multiple(total,start_val,end_val+1)
     if start_direction == 'left':
-        for num in range(start_val, end_val+1):
-            idx = num % len(usr_list) if num % len(usr_list) else len(usr_list)
-            ret_df.setdefault(f'U{idx}', []).append(check_is_need_to_pass(num))
+        for idx, num in enumerate(range(start_val, end_val)):
+            usr_idx = (idx+1) % len(usr_list) if (idx+1) % len(usr_list) else len(usr_list)
+            ret_df.setdefault(f'U{usr_idx}', []).append(check_is_need_to_pass(num))
     else:
-        for num in range(start_val, end_val+1):
-            idx = (len(usr_list) + 1) - (num % len(usr_list) if num % len(usr_list) else len(usr_list))
-            ret_df.setdefault(f'U{idx}', []).append(check_is_need_to_pass(num))
-        ret_df = dict(sorted(ret_df.items(), key=lambda item:int(item[0].replace('U',''))))
+        for idx,num in enumerate(range(start_val, end_val)):
+            usr_idx = (len(usr_list) + 1) - ((idx+1) % len(usr_list) if (idx+1)% len(usr_list) else len(usr_list))
+            ret_df.setdefault(f'U{usr_idx}', []).append(check_is_need_to_pass(num))
+    ret_df = dict(sorted(ret_df.items(), key=lambda item:int(item[0].replace('U',''))))
     return pd.DataFrame(ret_df)
+def update_df(usr_list, start_val=1,end_val=9999, start_direction='Left'):
+    ret_df = dict()
+    print(usr_list)
+    start_direction = start_direction.lower()
+    end_val = round_to_multiple(len(usr_list),start_val,end_val+1)
+    if start_direction == 'left':
+        for idx, num in enumerate(range(start_val, end_val)):
+            usr_idx = (idx) % len(usr_list)
+            ret_df.setdefault(usr_list[usr_idx], []).append(check_is_need_to_pass(num))
+    else:
+        for idx,num in enumerate(range(start_val, end_val)):
+            usr_idx = len(usr_list) - (idx % len(usr_list))
+            ret_df.setdefault(usr_list[usr_idx-1], []).append(check_is_need_to_pass(num))
+    ret_df = dict(sorted(ret_df.items(), key=lambda item:int(item[0].replace('U',''))))
+    return pd.DataFrame(ret_df)
+
 def highlight_col(row):
     return 'background-color: yellow'
 st.set_page_config(layout="wide")
@@ -121,18 +143,22 @@ if total:
     st.write('<style>div.row-widget.stRadio > div{flex-direction:row;justify-content: center;} </style>', unsafe_allow_html=True)
     st.write('<style>div.st-bf{flex-direction:column;} div.st-ag{font-weight:bold;padding-left:2px;}</style>', unsafe_allow_html=True)
     choose = st.radio('落在第幾個:',range(1,total+1))
-    max_val = int(st.number_input('上限',value=500,max_value=9999))
-    min_val = int(st.number_input('下限',value=1, min_value=0))
+    with st.sidebar:
+        MAX_VAL = int(st.number_input('上限',value=500,max_value=9999)) 
+        MIN_VAL = int(st.number_input('下限',value=1, min_value=0))
+    ori_usr_list=  [f'U{x}' for x in range(1, total+1)]
+    # st.multiselect("hello", df_left.columns, default=list(df_left.columns))
+    remaining_usr_list = st.multiselect("hello", ori_usr_list, default=ori_usr_list)
+    df_left = update_df(remaining_usr_list,MIN_VAL,MAX_VAL).style.applymap(highlight_col, subset=pd.IndexSlice[:, [f'U{choose}']])
     col1, col2 = st.columns(2)
     with col1: # 從左到右
-        df_left = init_df(total,min_val,max_val,'left').style.applymap(highlight_col, subset=pd.IndexSlice[:, [f'U{choose}']])
+        df_left = update_df(remaining_usr_list,MIN_VAL,MAX_VAL).style.applymap(highlight_col, subset=pd.IndexSlice[:, [f'U{choose}']])
         st.markdown(hide_dataframe_row_index, unsafe_allow_html=True)
         st.dataframe(df_left)
     with col2:
-        df_right = init_df(total,min_val,max_val,'right').style.applymap(highlight_col, subset=pd.IndexSlice[:, [f'U{choose}']])
+        df_right = update_df(remaining_usr_list,MIN_VAL,MAX_VAL,'right').style.applymap(highlight_col, subset=pd.IndexSlice[:, [f'U{choose}']])
         st.markdown(hide_dataframe_row_index, unsafe_allow_html=True)
         st.dataframe(df_right)
-    st.write(choose)
     num = st.number_input('text', format='%d')
     st.text(num)
     if num:
